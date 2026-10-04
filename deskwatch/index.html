@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deskwatch — Study Focus Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151c;
+    --bg-soft:#171b24;
+    --panel:#1c212b;
+    --panel-raised:#20263173;
+    --border:#2a3140;
+    --border-soft:#232936;
+    --text:#eef0f4;
+    --muted:#8e97a8;
+    --muted-dim:#5e6577;
+    --amber:#e8a23d;
+    --amber-soft:#f0c07e;
+    --amber-dim:#3a2f1c;
+    --red:#e2604f;
+    --red-dim:#3a2222;
+    --green:#5fbe8b;
+    --green-dim:#1f332a;
+    --radius:10px;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#12151c; --bg-soft:#171b24; --panel:#1c212b; --text:#eef0f4; --muted:#8e97a8;
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 18% -10%, rgba(232,162,61,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(95,190,139,0.05), transparent 55%);
+    pointer-events:none;
+    z-index:0;
+  }
+  .wrap{ position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:28px 20px 60px; }
+
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
+    flex-wrap:wrap;
+    padding-bottom:22px; margin-bottom:22px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .brand{ display:flex; flex-direction:column; gap:4px; }
+  .brand .mark{
+    font-family:'Fraunces', serif; font-weight:600; font-size:30px; letter-spacing:-0.01em;
+    color:var(--text); display:flex; align-items:center; gap:10px;
+  }
+  .brand .mark .dot{ width:9px; height:9px; border-radius:50%; background:var(--amber); box-shadow:0 0 10px rgba(232,162,61,0.7); }
+  .brand .tag{ color:var(--muted); font-size:13.5px; max-width:460px; line-height:1.5; }
+  .clock{ font-family:'IBM Plex Mono', monospace; color:var(--muted); font-size:13px; text-align:right; }
+  .clock .day{ color:var(--text); font-size:14px; margin-bottom:2px; }
+
+  .grid{
+    display:grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(340px, 1.15fr);
+    gap:18px;
+  }
+  @media (max-width: 840px){ .grid{ grid-template-columns: 1fr; } }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px;
+  }
+  .panel h2{
+    font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:13px;
+    color:var(--muted); text-transform:none; letter-spacing:0.01em;
+    margin:0 0 14px 0; display:flex; align-items:center; justify-content:space-between;
+  }
+
+  /* Camera panel */
+  .cam-shell{
+    position:relative; width:100%; aspect-ratio: 4/3; border-radius:8px; overflow:hidden;
+    background:#0a0c10; border:1px solid var(--border-soft);
+  }
+  video{ width:100%; height:100%; object-fit:cover; display:block; transform:scaleX(-1); }
+  .cam-shell.off video{ display:none; }
+  .cam-placeholder{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:10px; color:var(--muted-dim); text-align:center; padding:20px;
+  }
+  .cam-shell.off .cam-placeholder{ display:flex; }
+  .cam-shell:not(.off) .cam-placeholder{ display:none; }
+  .cam-placeholder svg{ opacity:0.5; }
+  .status-badge{
+    position:absolute; top:10px; left:10px; padding:6px 12px; border-radius:20px;
+    font-size:12.5px; font-weight:600; display:flex; align-items:center; gap:7px;
+    background:rgba(18,21,28,0.78); backdrop-filter:blur(4px);
+    border:1px solid rgba(255,255,255,0.08);
+    transition:background 0.3s, border-color 0.3s;
+  }
+  .status-badge .pip{ width:7px; height:7px; border-radius:50%; background:var(--muted); }
+  .status-badge.focused .pip{ background:var(--green); box-shadow:0 0 8px rgba(95,190,139,0.8); }
+  .status-badge.focused{ color:var(--green); }
+  .status-badge.alert{ color:var(--red); border-color:rgba(226,96,79,0.4); background:rgba(58,34,34,0.85); }
+  .status-badge.alert .pip{ background:var(--red); box-shadow:0 0 8px rgba(226,96,79,0.9); }
+  .status-badge.idle .pip{ background:var(--muted); }
+
+  .alert-banner{
+    position:absolute; left:10px; right:10px; bottom:10px; padding:10px 12px;
+    border-radius:8px; font-size:13px; font-weight:500; text-align:center;
+    background:rgba(226,96,79,0.92); color:#fff; opacity:0; transform:translateY(6px);
+    transition:opacity 0.25s, transform 0.25s; pointer-events:none;
+  }
+  .alert-banner.show{ opacity:1; transform:translateY(0); }
+
+  .cam-controls{ display:flex; gap:8px; margin-top:12px; }
+  .signal-list{ margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+  .signal-row{ display:flex; align-items:center; justify-content:space-between; font-size:12.5px; color:var(--muted); }
+  .signal-row .lbl{ display:flex; align-items:center; gap:7px; }
+  .signal-row .sw{ width:6px; height:6px; border-radius:50%; background:var(--muted-dim); }
+  .signal-row.on .sw{ background:var(--green); }
+  .signal-row.tripped .sw{ background:var(--red); }
+  .signal-row.tripped{ color:var(--red); }
+
+  /* Buttons */
+  button{
+    font-family:'IBM Plex Sans', sans-serif; font-size:13px; font-weight:600;
+    border-radius:7px; border:1px solid var(--border); background:var(--panel-raised);
+    color:var(--text); padding:9px 14px; cursor:pointer; transition:all 0.15s;
+  }
+  button:hover{ border-color:var(--muted-dim); }
+  button:active{ transform:translateY(1px); }
+  button:disabled{ opacity:0.4; cursor:not-allowed; }
+  button.primary{ background:var(--amber); border-color:var(--amber); color:#1a1408; }
+  button.primary:hover{ background:var(--amber-soft); }
+  button.danger{ background:var(--red-dim); border-color:rgba(226,96,79,0.35); color:var(--red); }
+  button.ghost{ background:transparent; }
+  button.full{ width:100%; }
+
+  /* Session panel */
+  select{
+    font-family:'IBM Plex Sans', sans-serif; font-size:13px; font-weight:500;
+    background:var(--panel-raised); color:var(--text); border:1px solid var(--border);
+    border-radius:7px; padding:8px 10px; width:100%;
+  }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+
+  .timer-display{
+    font-family:'IBM Plex Mono', monospace; font-size:52px; font-weight:600;
+    text-align:center; letter-spacing:0.01em; margin:6px 0 4px;
+    color:var(--text);
+  }
+  .timer-sub{ text-align:center; color:var(--muted); font-size:12.5px; margin-bottom:18px; }
+
+  .score-row{ display:flex; gap:14px; margin-bottom:16px; }
+  .score-card{
+    flex:1; background:var(--panel-raised); border:1px solid var(--border-soft);
+    border-radius:8px; padding:12px 14px;
+  }
+  .score-card .num{ font-family:'IBM Plex Mono', monospace; font-size:22px; font-weight:600; }
+  .score-card .lbl{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .score-card.focus .num{ color:var(--green); }
+  .score-card.events .num{ color:var(--amber); }
+
+  .session-btns{ display:flex; gap:8px; }
+  .session-btns button{ flex:1; }
+
+  /* Log panel */
+  .log-list{ display:flex; flex-direction:column; gap:0; max-height:220px; overflow-y:auto; }
+  .log-row{
+    display:flex; align-items:center; gap:10px; padding:8px 2px;
+    border-bottom:1px solid var(--border-soft); font-size:12.5px;
+  }
+  .log-row:last-child{ border-bottom:none; }
+  .log-row .t{ font-family:'IBM Plex Mono', monospace; color:var(--muted-dim); width:56px; flex-shrink:0; }
+  .log-row .type-dot{ width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .log-row .type-dot.away{ background:var(--amber); }
+  .log-row .type-dot.tab{ background:var(--red); }
+  .log-row .type-dot.blur{ background:#c77dd6; }
+  .log-empty{ color:var(--muted-dim); font-size:12.5px; padding:10px 2px; }
+
+  /* Stats section */
+  .stats-grid{
+    display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-top:18px;
+  }
+  @media (max-width:700px){ .stats-grid{ grid-template-columns: repeat(2,1fr); } }
+  .stat-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px;
+  }
+  .stat-card .num{ font-family:'IBM Plex Mono', monospace; font-size:26px; font-weight:600; color:var(--text); }
+  .stat-card .lbl{ font-size:12px; color:var(--muted); margin-top:4px; }
+
+  .week-panel{ margin-top:18px; }
+  .week-bars{ display:flex; align-items:flex-end; gap:10px; height:120px; margin-top:16px; }
+  .week-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .week-bar{ width:100%; max-width:34px; background:var(--border-soft); border-radius:4px 4px 2px 2px; min-height:3px; transition:height 0.4s; position:relative; }
+  .week-bar.has-data{ background:linear-gradient(180deg, var(--amber-soft), var(--amber)); }
+  .week-bar.today{ box-shadow:0 0 0 1px var(--amber); }
+  .week-lbl{ font-size:11px; color:var(--muted); }
+  .week-lbl.today{ color:var(--amber-soft); font-weight:600; }
+
+  .subject-list{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+  .subject-row{ display:flex; align-items:center; gap:12px; }
+  .subject-row .name{ width:110px; font-size:12.5px; color:var(--text); flex-shrink:0; }
+  .subject-row .bar-track{ flex:1; height:6px; background:var(--border-soft); border-radius:3px; overflow:hidden; }
+  .subject-row .bar-fill{ height:100%; background:var(--amber); border-radius:3px; }
+  .subject-row .val{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted); width:46px; text-align:right; flex-shrink:0; }
+
+  .footnote{ margin-top:26px; color:var(--muted-dim); font-size:11.5px; line-height:1.6; text-align:center; }
+  .footnote a{ color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark"><span class="dot"></span>Deskwatch</div>
+      <div class="tag">A study session monitor that watches for stillness, tab-switching, and app-switching — and turns it into a focus score.</div>
+    </div>
+    <div class="clock">
+      <div class="day" id="clockDay">—</div>
+      <div id="clockTime">--:--:--</div>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- LEFT: camera + signals -->
+    <div class="panel">
+      <h2>Camera watch</h2>
+      <div class="cam-shell off" id="camShell">
+        <video id="video" autoplay playsinline muted></video>
+        <div class="cam-placeholder">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 8h4a1 1 0 011 1v6a1 1 0 01-1 1h-4M3 7a1 1 0 011-1h9a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7z"/></svg>
+          <span>Camera is off — turn it on to enable stillness detection</span>
+        </div>
+        <div class="status-badge idle" id="statusBadge"><span class="pip"></span><span id="statusText">Camera off</span></div>
+        <div class="alert-banner" id="alertBanner"></div>
+      </div>
+      <div class="cam-controls">
+        <button class="primary full" id="camBtn">Turn on camera</button>
+      </div>
+      <div class="signal-list">
+        <div class="signal-row" id="sigMotion"><span class="lbl"><span class="sw"></span>Stillness watch</span><span id="sigMotionVal">off</span></div>
+        <div class="signal-row" id="sigTab"><span class="lbl"><span class="sw"></span>Tab-switch watch</span><span id="sigTabVal">off</span></div>
+        <div class="signal-row" id="sigBlur"><span class="lbl"><span class="sw"></span>Window-switch watch</span><span id="sigBlurVal">off</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: session controls -->
+    <div class="panel">
+      <h2>Session</h2>
+      <div class="field">
+        <label for="subjectSelect">Subject</label>
+        <select id="subjectSelect">
+          <option>Physics</option>
+          <option>Chemistry</option>
+          <option>Mathematics</option>
+          <option>Biology</option>
+          <option>English</option>
+          <option>Computer Science</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="timer-display" id="timerDisplay">00:00:00</div>
+      <div class="timer-sub" id="timerSub">not started</div>
+
+      <div class="score-row">
+        <div class="score-card focus">
+          <div class="num" id="focusScore">—</div>
+          <div class="lbl">Focus score</div>
+        </div>
+        <div class="score-card events">
+          <div class="num" id="eventCount">0</div>
+          <div class="lbl">Distraction events</div>
+        </div>
+      </div>
+
+      <div class="session-btns">
+        <button class="primary" id="startBtn">Start session</button>
+        <button class="ghost" id="pauseBtn" disabled>Pause</button>
+        <button class="danger" id="endBtn" disabled>End</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="panel" style="margin-top:18px;">
+    <h2>Distraction log <span id="logSubtitle" style="font-weight:400; color:var(--muted-dim);"></span></h2>
+    <div class="log-list" id="logList">
+      <div class="log-empty">No events yet this session.</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="num" id="statToday">0h 0m</div><div class="lbl">Studied today</div></div>
+    <div class="stat-card"><div class="num" id="statStreak">0</div><div class="lbl">Day streak</div></div>
+    <div class="stat-card"><div class="num" id="statSessions">0</div><div class="lbl">Sessions logged</div></div>
+    <div class="stat-card"><div class="num" id="statAvgFocus">—</div><div class="lbl">Avg. focus score</div></div>
+  </div>
+
+  <div class="panel week-panel">
+    <h2>Last 7 days</h2>
+    <div class="week-bars" id="weekBars"></div>
+  </div>
+
+  <div class="panel" style="margin-top:18px;">
+    <h2>Time by subject <span style="font-weight:400; color:var(--muted-dim);">(all time)</span></h2>
+    <div class="subject-list" id="subjectList">
+      <div class="log-empty">No sessions recorded yet.</div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Camera video never leaves this page — motion is measured locally with a pixel-difference check, nothing is uploaded or recorded. All session data is stored only in this browser.
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Storage ----------
+  var STORE_KEY = "deskwatch_v1";
+  function loadData(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if(!raw) return { sessions: [] };
+      var parsed = JSON.parse(raw);
+      if(!parsed.sessions) parsed.sessions = [];
+      return parsed;
+    }catch(e){ return { sessions: [] }; }
+  }
+  function saveData(data){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }catch(e){}
+  }
+  var db = loadData();
+
+  // ---------- Clock ----------
+  var clockDay = document.getElementById('clockDay');
+  var clockTime = document.getElementById('clockTime');
+  function tickClock(){
+    var now = new Date();
+    clockDay.textContent = now.toLocaleDateString(undefined, { weekday:'long', month:'short', day:'numeric' });
+    clockTime.textContent = now.toLocaleTimeString();
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // ---------- Elements ----------
+  var video = document.getElementById('video');
+  var camShell = document.getElementById('camShell');
+  var camBtn = document.getElementById('camBtn');
+  var statusBadge = document.getElementById('statusBadge');
+  var statusText = document.getElementById('statusText');
+  var alertBanner = document.getElementById('alertBanner');
+  var sigMotion = document.getElementById('sigMotion');
+  var sigMotionVal = document.getElementById('sigMotionVal');
+  var sigTab = document.getElementById('sigTab');
+  var sigTabVal = document.getElementById('sigTabVal');
+  var sigBlur = document.getElementById('sigBlur');
+  var sigBlurVal = document.getElementById('sigBlurVal');
+
+  var subjectSelect = document.getElementById('subjectSelect');
+  var timerDisplay = document.getElementById('timerDisplay');
+  var timerSub = document.getElementById('timerSub');
+  var focusScoreEl = document.getElementById('focusScore');
+  var eventCountEl = document.getElementById('eventCount');
+  var startBtn = document.getElementById('startBtn');
+  var pauseBtn = document.getElementById('pauseBtn');
+  var endBtn = document.getElementById('endBtn');
+  var logList = document.getElementById('logList');
+  var logSubtitle = document.getElementById('logSubtitle');
+
+  // ---------- Camera + motion detection ----------
+  var camStream = null;
+  var camOn = false;
+  var motionCanvas = document.createElement('canvas');
+  motionCanvas.width = 48; motionCanvas.height = 36;
+  var mctx = motionCanvas.getContext('2d', { willReadFrequently:true });
+  var lastFrame = null;
+  var lastMotionAt = Date.now();
+  var motionPollTimer = null;
+  var AWAY_THRESHOLD_MS = 25000; // no meaningful motion for 25s -> "away/still" alert
+  var awayFlagged = false;
+
+  camBtn.addEventListener('click', function(){
+    if(camOn){ stopCamera(); } else { startCamera(); }
+  });
+
+  function startCamera(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      setBadge('alert', 'Camera not supported');
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { width:320, height:240 }, audio:false })
+      .then(function(stream){
+        camStream = stream;
+        video.srcObject = stream;
+        camOn = true;
+        camShell.classList.remove('off');
+        camBtn.textContent = 'Turn off camera';
+        setBadge('focused', 'Camera on');
+        lastFrame = null;
+        lastMotionAt = Date.now();
+        awayFlagged = false;
+        sigMotion.classList.add('on');
+        sigMotionVal.textContent = 'watching';
+        motionPollTimer = setInterval(pollMotion, 1200);
+      })
+      .catch(function(err){
+        setBadge('alert', 'Camera permission denied');
+      });
+  }
+  function stopCamera(){
+    if(camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); }
+    camStream = null; camOn = false;
+    camShell.classList.add('off');
+    camBtn.textContent = 'Turn on camera';
+    setBadge('idle', 'Camera off');
+    clearInterval(motionPollTimer);
+    sigMotion.classList.remove('on','tripped');
+    sigMotionVal.textContent = 'off';
+  }
+
+  function pollMotion(){
+    if(!camOn || video.readyState < 2) return;
+    mctx.drawImage(video, 0, 0, motionCanvas.width, motionCanvas.height);
+    var frame = mctx.getImageData(0,0,motionCanvas.width, motionCanvas.height).data;
+    if(lastFrame){
+      var diff = 0;
+      for(var i=0; i<frame.length; i+=16){ // sample every 4th pixel
+        diff += Math.abs(frame[i] - lastFrame[i]);
+      }
+      var avgDiff = diff / (frame.length/16);
+      if(avgDiff > 4.5){
+        lastMotionAt = Date.now();
+        if(awayFlagged){
+          awayFlagged = false;
+          clearDistraction('away');
+        }
+        if(sessionRunning && !sessionPaused) sigMotion.classList.remove('tripped');
+      } else {
+        var stillFor = Date.now() - lastMotionAt;
+        if(stillFor > AWAY_THRESHOLD_MS && !awayFlagged){
+          awayFlagged = true;
+          sigMotion.classList.add('tripped');
+          triggerDistraction('away', 'No movement detected — still there?');
+        }
+      }
+    }
+    lastFrame = frame;
+  }
+
+  function setBadge(kind, text){
+    statusBadge.className = 'status-badge ' + kind;
+    statusText.textContent = text;
+  }
+
+  var bannerTimer = null;
+  function showBanner(msg){
+    alertBanner.textContent = msg;
+    alertBanner.classList.add('show');
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(function(){ alertBanner.classList.remove('show'); }, 4200);
+  }
+
+  // ---------- Beep alarm (synthesized, no external audio) ----------
+  var audioCtx = null;
+  function beep(freq, dur, delay){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.value = 0.06;
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      var t = audioCtx.currentTime + (delay||0);
+      osc.start(t);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.stop(t + dur + 0.02);
+    }catch(e){}
+  }
+  function alarmFor(type){
+    if(type === 'away'){ beep(330,0.18,0); beep(330,0.18,0.26); }
+    else if(type === 'tab'){ beep(520,0.14,0); }
+    else if(type === 'blur'){ beep(420,0.12,0); beep(620,0.12,0.16); }
+  }
+
+  // ---------- Tab / window signals ----------
+  document.addEventListener('visibilitychange', function(){
+    if(!sessionRunning || sessionPaused) return;
+    if(document.hidden){
+      sigTab.classList.add('tripped');
+      triggerDistraction('tab', 'Switched away from this tab');
+    } else {
+      sigTab.classList.remove('tripped');
+      clearDistraction('tab');
+    }
+  });
+  window.addEventListener('blur', function(){
+    if(!sessionRunning || sessionPaused) return;
+    if(document.hidden) return; // avoid double-count with visibilitychange
+    sigBlur.classList.add('tripped');
+    triggerDistraction('blur', 'Left the study window');
+  });
+  window.addEventListener('focus', function(){
+    sigBlur.classList.remove('tripped');
+    clearDistraction('blur');
+  });
+
+  // ---------- Session state ----------
+  var sessionRunning = false;
+  var sessionPaused = false;
+  var sessionStart = null;
+  var elapsedSec = 0;
+  var distractedSec = 0;
+  var activeDistraction = null; // {type, since}
+  var events = []; // {type, label, time}
+  var tickTimer = null;
+
+  function fmtTime(sec){
+    var h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = Math.floor(sec%60);
+    function p(n){ return (n<10?'0':'')+n; }
+    return p(h)+':'+p(m)+':'+p(s);
+  }
+
+  function triggerDistraction(type, label){
+    if(activeDistraction && activeDistraction.type === type) return; // already active
+    activeDistraction = { type: type, since: Date.now() };
+    events.push({ type:type, label:label, time: new Date() });
+    renderLog();
+    eventCountEl.textContent = events.length;
+    setBadge('alert', label);
+    showBanner('⚠ ' + label);
+    alarmFor(type);
+  }
+  function clearDistraction(type){
+    if(activeDistraction && activeDistraction.type === type){
+      distractedSec += Math.max(0, (Date.now() - activeDistraction.since)/1000);
+      activeDistraction = null;
+      if(sessionRunning && !sessionPaused) setBadge('focused', 'Focused');
+    }
+  }
+
+  function renderLog(){
+    if(events.length === 0){
+      logList.innerHTML = '<div class="log-empty">No events yet this session.</div>';
+      logSubtitle.textContent = '';
+      return;
+    }
+    logSubtitle.textContent = '(' + events.length + ' this session)';
+    var html = '';
+    for(var i=events.length-1; i>=0; i--){
+      var e = events[i];
+      var t = e.time.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      html += '<div class="log-row"><span class="t">'+t+'</span><span class="type-dot '+e.type+'"></span><span>'+e.label+'</span></div>';
+    }
+    logList.innerHTML = html;
+  }
+
+  function updateFocusScore(){
+    if(elapsedSec <= 0){ focusScoreEl.textContent = '—'; return; }
+    var curDistracted = distractedSec + (activeDistraction ? (Date.now()-activeDistraction.since)/1000 : 0);
+    var score = Math.max(0, Math.round(100 * (1 - curDistracted/elapsedSec)));
+    focusScoreEl.textContent = score + '%';
+  }
+
+  startBtn.addEventListener('click', function(){
+    sessionRunning = true; sessionPaused = false;
+    sessionStart = Date.now(); elapsedSec = 0; distractedSec = 0;
+    activeDistraction = null; events = [];
+    subjectSelect.disabled = true;
+    startBtn.disabled = true; pauseBtn.disabled = false; endBtn.disabled = false;
+    pauseBtn.textContent = 'Pause';
+    timerSub.textContent = 'studying ' + subjectSelect.value;
+    renderLog(); eventCountEl.textContent = '0';
+    sigTab.classList.add('on'); sigTabVal.textContent = 'watching';
+    sigBlur.classList.add('on'); sigBlurVal.textContent = 'watching';
+    if(!camOn){ sigMotionVal.textContent = 'off (camera off)'; }
+    setBadge(camOn ? 'focused' : 'idle', camOn ? 'Focused' : 'Session running');
+    tickTimer = setInterval(function(){
+      if(!sessionPaused){ elapsedSec++; }
+      timerDisplay.textContent = fmtTime(elapsedSec);
+      updateFocusScore();
+    }, 1000);
+  });
+
+  pauseBtn.addEventListener('click', function(){
+    sessionPaused = !sessionPaused;
+    pauseBtn.textContent = sessionPaused ? 'Resume' : 'Pause';
+    timerSub.textContent = sessionPaused ? 'paused' : 'studying ' + subjectSelect.value;
+    if(sessionPaused){ setBadge('idle', 'Paused'); }
+    else { setBadge(camOn ? 'focused' : 'idle', 'Focused'); }
+  });
+
+  endBtn.addEventListener('click', function(){
+    endSession();
+  });
+
+  function endSession(){
+    if(!sessionRunning) return;
+    clearInterval(tickTimer);
+    if(activeDistraction){ clearDistraction(activeDistraction.type); }
+    var durationSec = elapsedSec;
+    if(durationSec >= 5){ // only log meaningful sessions
+      var focusScore = durationSec>0 ? Math.max(0, Math.round(100*(1-distractedSec/durationSec))) : 100;
+      db.sessions.push({
+        subject: subjectSelect.value,
+        start: sessionStart,
+        end: Date.now(),
+        durationSec: durationSec,
+        distractedSec: Math.round(distractedSec),
+        focusScore: focusScore,
+        events: events.length
+      });
+      saveData(db);
+      renderStats();
+    }
+    sessionRunning = false; sessionPaused = false;
+    subjectSelect.disabled = false;
+    startBtn.disabled = false; pauseBtn.disabled = true; endBtn.disabled = true;
+    timerDisplay.textContent = '00:00:00';
+    timerSub.textContent = durationSec >= 5 ? 'session saved' : 'not started';
+    focusScoreEl.textContent = '—'; eventCountEl.textContent = '0';
+    sigTab.classList.remove('on','tripped'); sigTabVal.textContent = 'off';
+    sigBlur.classList.remove('on','tripped'); sigBlurVal.textContent = 'off';
+    setBadge(camOn ? 'focused' : 'idle', camOn ? 'Camera on' : 'Camera off');
+    events = []; renderLog();
+  }
+
+  // ---------- Stats rendering ----------
+  function isSameDay(ts, ref){
+    var a = new Date(ts), b = ref;
+    return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+  function renderStats(){
+    var sessions = db.sessions;
+    var now = new Date();
+
+    // today total
+    var todaySec = 0;
+    sessions.forEach(function(s){ if(isSameDay(s.start, now)) todaySec += s.durationSec; });
+    document.getElementById('statToday').textContent = Math.floor(todaySec/3600)+'h '+Math.floor((todaySec%3600)/60)+'m';
+
+    // sessions count
+    document.getElementById('statSessions').textContent = sessions.length;
+
+    // avg focus
+    if(sessions.length){
+      var avg = Math.round(sessions.reduce(function(a,s){return a+s.focusScore;},0)/sessions.length);
+      document.getElementById('statAvgFocus').textContent = avg + '%';
+    } else {
+      document.getElementById('statAvgFocus').textContent = '—';
+    }
+
+    // streak: consecutive days (including today) with >=1 session
+    var daySet = {};
+    sessions.forEach(function(s){
+      var d = new Date(s.start);
+      var key = d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
+      daySet[key] = true;
+    });
+    var streak = 0;
+    var cursor = new Date(now);
+    // if no session today, streak counts back from yesterday but breaks at 0 if yesterday missing too
+    while(true){
+      var key = cursor.getFullYear()+'-'+cursor.getMonth()+'-'+cursor.getDate();
+      if(daySet[key]){ streak++; cursor.setDate(cursor.getDate()-1); }
+      else { break; }
+    }
+    document.getElementById('statStreak').textContent = streak;
+
+    // week bars
+    var weekBars = document.getElementById('weekBars');
+    var html = '';
+    var maxSec = 1;
+    var days = [];
+    for(var i=6;i>=0;i--){
+      var d = new Date(now); d.setDate(d.getDate()-i);
+      var sec = 0;
+      sessions.forEach(function(s){ if(isSameDay(s.start, d)) sec += s.durationSec; });
+      days.push({ d:d, sec:sec });
+      if(sec>maxSec) maxSec = sec;
+    }
+    days.forEach(function(item){
+      var pct = Math.max(3, Math.round((item.sec/maxSec)*100));
+      var isToday = isSameDay(item.d.getTime(), now);
+      var lbl = item.d.toLocaleDateString(undefined,{weekday:'short'}).slice(0,2);
+      html += '<div class="week-col">' +
+        '<div class="week-bar'+(item.sec>0?' has-data':'')+(isToday?' today':'')+'" style="height:'+pct+'%"></div>' +
+        '<div class="week-lbl'+(isToday?' today':'')+'">'+lbl+'</div>' +
+      '</div>';
+    });
+    weekBars.innerHTML = html;
+
+    // subject breakdown
+    var bySubject = {};
+    sessions.forEach(function(s){ bySubject[s.subject] = (bySubject[s.subject]||0) + s.durationSec; });
+    var subjectList = document.getElementById('subjectList');
+    var keys = Object.keys(bySubject).sort(function(a,b){ return bySubject[b]-bySubject[a]; });
+    if(keys.length === 0){
+      subjectList.innerHTML = '<div class="log-empty">No sessions recorded yet.</div>';
+    } else {
+      var maxSub = bySubject[keys[0]];
+      var sHtml = '';
+      keys.forEach(function(k){
+        var sec = bySubject[k];
+        var pct = Math.max(4, Math.round((sec/maxSub)*100));
+        var h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60);
+        sHtml += '<div class="subject-row"><span class="name">'+k+'</span>' +
+          '<span class="bar-track"><span class="bar-fill" style="width:'+pct+'%"></span></span>' +
+          '<span class="val">'+h+'h '+m+'m</span></div>';
+      });
+      subjectList.innerHTML = sHtml;
+    }
+  }
+
+  renderStats();
+})();
+</script>
+</body>
+</html>
