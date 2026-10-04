@@ -8,3 +8,4 @@ Resume and write-ups of the projects I've built.
 - [Drape Studio](projects/drape-studio.md)
 - [Y2K event website](projects/y2k-event-website.md)
 - [Academic projects](projects/academic.md)
+- [Posters, website and design links](projects/posters-and-links.md)
