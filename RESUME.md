@@ -2,11 +2,11 @@
 
 **Marketing & AI Specialist | Co-Founder, DOSO NGO | Builder of Apps, Websites & Design Systems**
 
-Lucknow, Uttar Pradesh, India | devangnagaich@gmail.com
+Lucknow, Uttar Pradesh, India | devangnagaich@gmail.com | [GitHub](https://github.com/devangnagaich-bit)
 
 ## Profile
 
-CBSE Class 12 student and co-founder of DOSO NGO who ships polished, fully working digital products rather than prototypes: a 15-page NGO website with an AI chatbot, a three-sided quick-commerce platform, an AI virtual try-on studio, a complete Canva/Figma design system, and interactive event microsites. Combines marketing, design and applied AI with a strong, consistent visual eye.
+CBSE Class 12 student and co-founder of DOSO NGO who ships polished, fully working digital products rather than prototypes: a 15-page NGO website with an AI chatbot, a three-sided quick-commerce platform, an AI virtual try-on studio, a live study focus monitor, a complete Canva/Figma design system, and interactive event microsites. Combines marketing, design and applied AI with a strong, consistent visual eye.
 
 ## Experience
 
@@ -21,6 +21,11 @@ CBSE Class 12 student and co-founder of DOSO NGO who ships polished, fully worki
 - Integrated an AI chatbot (Claude) with a floating chat UI and a DOSO-specific system prompt to answer visitor questions about the organisation.
 
 ## Projects
+
+### Deskwatch: Study Focus Monitor
+*Single-file web app; HTML, CSS and vanilla JavaScript. [Live app](https://devangnagaich-bit.github.io/portfolio/deskwatch/) | [Write-up](projects/deskwatch.md)*
+
+- Detects stillness through the camera (processed locally, nothing uploaded), tab-switching and window-switching, and turns them into a live focus score with sound alerts, a distraction log and a stats dashboard (day streak, 7-day chart, time by subject).
 
 ### Ansal Quick: Hyperlocal Quick-Commerce Platform
 *Blinkit / Zepto-style app for the Ansal API locality; React*
@@ -51,7 +56,7 @@ CBSE, Class 12, Lucknow, India
 ## Skills & Tools
 
 - **Design:** Canva, Figma, FigJam, design systems, posters, brochures, social media, brand collateral
-- **Development:** React, web design, full multi-page websites, role-based apps, shared storage, Python (matplotlib, schemdraw)
+- **Development:** React, vanilla JavaScript, web design, full multi-page websites, role-based apps, shared storage, Python (matplotlib, schemdraw)
 - **AI:** Claude chatbot integration, system-prompt design, virtual try-on pipelines (IDM-VTON on Hugging Face), AI-assisted production
 - **Marketing:** Social media content, NGO branding, sponsor communications, campaign collateral, event promotion
 - **Strengths:** Strong aesthetic judgement, end-to-end delivery of multi-feature products, documentation and report writing
