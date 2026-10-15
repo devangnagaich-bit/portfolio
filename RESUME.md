@@ -11,7 +11,7 @@ CBSE Class 12 student and co-founder of DOSO NGO who ships polished, fully worki
 ## Experience
 
 ### Marketing & AI Specialist and Co-Founder, DOSO NGO (Lucknow)
-*Children's education, health and care organisation. Co-founded with Alka Singh (Director) and Paridhi Singh (Creative Head).*
+*Children's education, health and care organisation. Co-founded with Alka Singh (Director) and Paridhi Singh (Creative Head). [Website](https://canva.link/gfy4ofba41ahw84)*
 
 - Own marketing, branding and AI initiatives across DOSO's programmes: school outreach, child sponsorship and sponsor transparency reporting.
 - Built DOSO's complete digital asset library: website, design system, chatbot, social content, posters, brochures and certificates.
@@ -39,6 +39,11 @@ CBSE Class 12 student and co-founder of DOSO NGO who ships polished, fully worki
 
 - Users upload a person photo and a saree photo to generate a draped result, with manual 2D and 3D modes plus an AI auto-fit backend.
 - Evaluated paid options (FASHN, Replicate) and chose the free Hugging Face IDM-VTON space; tested and ruled out WeShopAI because it blocks API access.
+
+### AfterHrs: Streetwear Launch Campaign
+*Drop 01 Hoodies; Instagram @afterhrs.in. [Write-up](projects/afterhrs.md)*
+
+- Designed the first-drop countdown set in a black, torn-paper and concrete look: coming-soon poster, sneak-peek posts and stories, countdown story, "This Friday" and "3 days to go" posts, a Drop 01 hoodies post and brand lifestyle images.
 
 ### Y2K Interactive Event Website, Invitations and Posters
 - Designed eye-catching invitations and posters in a black Y2K look, modelled on reference invitations.
